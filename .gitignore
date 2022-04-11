@@ -127,3 +127,9 @@ dmypy.json
 
 # Pyre type checker
 .pyre/
+dataset/
+lightning_logs/
+previews/
+.qt_for_python/
+check_points/
+sexyface/
