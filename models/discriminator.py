@@ -6,6 +6,8 @@ import pickle
 from models.diff_augment import DiffAugment
 from models.projector import F_RandomProj
 from torch.nn.utils import spectral_norm
+from models.constants import VITS
+from torch_utils.ops import upfirdn2d
 
 def conv2d(*args, **kwargs):
     return spectral_norm(nn.Conv2d(*args, **kwargs))
@@ -162,12 +164,17 @@ class ProjectedDiscriminator(torch.nn.Module):
     # def eval(self):
     #     return self.train(False)
 
-    def forward(self, x):
+    def forward(self, x ,blur_sigma =0):
+        blur_size = np.floor(blur_sigma * 3)
+        if blur_size > 0:
+            f = torch.arange(-blur_size, blur_size + 1, device=x.device).div(blur_sigma).square().neg().exp2()
+            x = upfirdn2d.filter2d(x, f / f.sum())
+
         logits = []
         for bb_name, feat in self.feature_networks.items():
-            x = DiffAugment(x,['translation', 'color','cutout'])
-            # if self.im_res < 256:
-            #     x = F.interpolate(x, 224, mode='bilinear', align_corners=False)
+            if self.im_res < 256 :
+                 x = F.interpolate(x, 224, mode='bilinear', align_corners=False)
+            x = DiffAugment(x,['translation', 'color','cutout'])     
             features = feat(x)
             l = self.discriminators[bb_name](features)
             logits += l

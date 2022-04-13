@@ -1,5 +1,5 @@
 batch_size: 8
 image_size: 256
-latent_dim: 100
+latent_dim: 64
 preview_num: 9
 resume: true

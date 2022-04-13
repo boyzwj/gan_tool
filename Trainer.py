@@ -4,7 +4,6 @@ from pytorch_lightning.callbacks import ModelCheckpoint
 
 import cv2
 import matplotlib.pyplot as plt
-from models.fastgan import FastGAN
 
 from models.projected_gan import ProjectedGAN
 import torch
@@ -16,8 +15,8 @@ def trainerThread(cfg, s2c, c2s):
     batch_size = cfg["batch_size"],
     preview_num = cfg["preview_num"],
     traindataset= "sexyface",
-    preview_path = "pj_gan",
-    lr = 0.0005,
+    preview_path = "pj_gan3",
+    lr = 0.0025,
     s2c=s2c,
     c2s=c2s)
 
