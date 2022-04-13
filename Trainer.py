@@ -2,9 +2,6 @@ from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
 from pytorch_lightning.callbacks import ModelCheckpoint
 
-import cv2
-import matplotlib.pyplot as plt
-
 from models.projected_gan import ProjectedGAN
 import torch
 
