@@ -22,7 +22,7 @@ class DownBlock(nn.Module):
     def __init__(self, in_planes, out_planes, width=1):
         super().__init__()
         self.main = nn.Sequential(
-            conv2d(in_planes, out_planes*width, 4, 2, 1, bias=True),
+            conv2d(in_planes, out_planes*width, 4, 2, 1, bias=False),
             NormLayer(out_planes*width),
             nn.LeakyReLU(0.2, inplace=True),
         )
