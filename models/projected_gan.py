@@ -101,8 +101,8 @@ class ProjectedGAN(LightningModule):
             
     def _make_noise(self, latent_dim, n_noise):
         if n_noise == 1:
-            return torch.randn(self.preview_num, latent_dim, device=self.device)
-        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device)
+            return torch.randn(self.preview_num, latent_dim, device=self.device,requires_grad=True)
+        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device,requires_grad=True)
 
 
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -113,19 +113,17 @@ class ProjectedGAN(LightningModule):
         if optimizer_idx == 0:
             noise = self._make_noise(self.z_dim, 1)
             fake_img, _ws = self.G(noise)
-            # if self.global_step % 16 == 0:
-            #     pl_noise = torch.randn_like(fake_img) / np.sqrt(fake_img.shape[2] * fake_img.shape[3])
-            #     with conv2d_gradfix.no_weight_gradients(True):
-            #          pl_grads = torch.autograd.grad(outputs=[(fake_img * pl_noise).sum()], inputs=[ws], create_graph=True, only_inputs=True)[0]
-            #     pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
-            #     pl_mean = self.pl_mean.lerp(pl_lengths.mean(), self.pl_decay)
-            #     self.pl_mean.copy_(pl_mean.detach())
-            #     pl_penalty = (pl_lengths - pl_mean).square()
-            #     loss_Gpl = pl_penalty * self.pl_weight
-            #     self.log('gp_loss', loss_Gpl, on_step=True, on_epoch=True, prog_bar=True)
-            #     return loss_Gpl
-            # else:            f_preds =self.D(fake_img,blur_sigma)     
             g_loss = sum([(-l).mean() for l in f_preds])
+            if self.global_step % 4 == 0:
+                pl_noise = torch.randn_like(fake_img) / np.sqrt(fake_img.shape[2] * fake_img.shape[3])
+                with conv2d_gradfix.no_weight_gradients(True):
+                    pl_grads = torch.autograd.grad(outputs=[(fake_img * pl_noise).sum()], inputs=[ws], create_graph=True, only_inputs=True)[0]
+                    pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
+                    pl_mean = self.pl_mean.lerp(pl_lengths.mean(), self.pl_decay)
+                    self.pl_mean.copy_(pl_mean.detach())
+                    pl_penalty = (pl_lengths - pl_mean).square()
+                    pl_loss = pl_penalty * self.pl_weight
+                    g_loss = g_loss + pl_loss.mean()
             self.log('g_loss', g_loss, on_step=True, on_epoch=True, prog_bar=True)
             return g_loss
 
