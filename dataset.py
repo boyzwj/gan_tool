@@ -13,7 +13,7 @@ class MultiResolutionDataset(Dataset):
         self.resolution = resolution
         self.transform = transform
         self.blacklist = np.array([40650])
-        self.length = 136723
+        self.length = 215262
         # self.length = 1000
         # self.check_consistency()
     
@@ -33,7 +33,7 @@ class MultiResolutionDataset(Dataset):
             self.length = int(txn.get('length'.encode('utf-8')).decode('utf-8'))
             self.txn = txn
         self.length -= len(self.blacklist)
-        # print(f'MultiResolutionDataset len: {self.length}')
+        print(f'MultiResolutionDataset len: {self.length}')
 
 
 

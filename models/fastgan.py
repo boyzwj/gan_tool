@@ -6,6 +6,14 @@ from torch.nn.utils import spectral_norm
 def normalize_second_moment(x, dim=1, eps=1e-8):
     return x * (x.square().mean(dim=dim, keepdim=True) + eps).rsqrt()
 
+
+class DummyMapping(nn.Module):
+    def __init__(self):
+        super().__init__()
+
+    def forward(self, z, c=None, **kwargs):
+        return z.unsqueeze(1)  # to fit the StyleGAN API    
+
 def NormLayer(c, mode='batch'):
     if mode == 'group':
         return nn.GroupNorm(c//2, c)
@@ -67,19 +75,7 @@ class SEBlock(nn.Module):
         return feat_big * self.main(feat_small)
     
     
-    
-class DownBlock(nn.Module):
-    def __init__(self, in_planes, out_planes):
-        super(DownBlock, self).__init__()
-
-        self.main = nn.Sequential(
-            conv2d(in_planes, out_planes, 4, 2, 1, bias=False),
-            NormLayer(out_planes),
-            nn.LeakyReLU(0.2, inplace=True),
-            )
-
-    def forward(self, feat):
-        return self.main(feat)       
+           
 
 
 class GLU(nn.Module):
@@ -140,6 +136,7 @@ class Generator(nn.Module):
 
         self.img_resolution = im_size
         self.init = InitLayer(z_dim, channel=nfc[4])
+        self.mapping = DummyMapping()
         
         # UpBlock = UpBlockSmall if lite else UpBlockBig
         
@@ -165,8 +162,8 @@ class Generator(nn.Module):
             self.feat_1024 = UpBlockSmall(nfc[512], nfc[1024])
         
     def forward(self, input):
-        
-        feat_4 = self.init(input)
+        ws = self.mapping(input)
+        feat_4 = self.init(ws)
         feat_8 = self.feat_8(feat_4)
         feat_16 = self.feat_16(feat_8)
         feat_32 = self.feat_32(feat_16)
@@ -186,4 +183,4 @@ class Generator(nn.Module):
 
         if self.img_resolution >= 1024:
             feat_last = self.feat_1024(feat_last)
-        return self.to_big(feat_last)
+        return self.to_big(feat_last), ws

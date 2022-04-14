@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 
-# Form implementation generated from reading ui file 'e:\project\pytorch_test\ui\FaceTool.ui'
+# Form implementation generated from reading ui file 'e:\project\gan_tool\ui\FaceTool.ui'
 #
 # Created by: PyQt5 UI code generator 5.15.4
 #

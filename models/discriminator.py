@@ -155,14 +155,14 @@ class ProjectedDiscriminator(torch.nn.Module):
         
         
 
-    # def train(self, mode=True):
-    #     self.feature_networks = self.feature_networks.train(False)
-    #     self.discriminators = self.discriminators.train(mode)
-    #     return self
+    def train(self, mode=True):
+        self.feature_networks = self.feature_networks.train(False)
+        self.discriminators = self.discriminators.train(mode)
+        return self
 
 
-    # def eval(self):
-    #     return self.train(False)
+    def eval(self):
+        return self.train(False)
 
     def forward(self, x ,blur_sigma =0):
         blur_size = np.floor(blur_sigma * 3)
