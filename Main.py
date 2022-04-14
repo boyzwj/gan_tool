@@ -6,7 +6,6 @@ import sys
 import yaml
 
 import os
-import IPython
 import torch
 from torch.multiprocessing import Process, Queue 
 import numpy as np

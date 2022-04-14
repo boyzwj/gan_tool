@@ -13,9 +13,19 @@ class MultiResolutionDataset(Dataset):
         self.resolution = resolution
         self.transform = transform
         self.blacklist = np.array([40650])
-        self.length = 215262
-        # self.length = 1000
-        # self.check_consistency()
+        env = lmdb.open(
+            self.path,
+            max_readers=32,
+            readonly=True,
+            lock=False,
+            readahead=False,
+            meminit=False,
+        )
+        if not env:
+            raise IOError('Cannot open lmdb dataset', self.path)
+        with env.begin(write=False) as txn:
+            self.length = int(txn.get('length'.encode('utf-8')).decode('utf-8'))
+        env.close()
     
     def open_lmdb(self):
         self.env = lmdb.open(
@@ -26,14 +36,11 @@ class MultiResolutionDataset(Dataset):
             readahead=False,
             meminit=False,
         )
-
         if not self.env:
             raise IOError('Cannot open lmdb dataset', self.path)
         with self.env.begin(write=False) as txn:
-            self.length = int(txn.get('length'.encode('utf-8')).decode('utf-8'))
             self.txn = txn
-        self.length -= len(self.blacklist)
-        print(f'MultiResolutionDataset len: {self.length}')
+
 
 
 

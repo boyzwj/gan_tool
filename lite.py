@@ -1,3 +1,4 @@
+import io
 import torch
 from torch import nn
 from pytorch_lightning.lite import LightningLite
@@ -9,6 +10,8 @@ from models.discriminator import ProjectedDiscriminator
 from torch.utils.data import DataLoader
 from dataset import MultiResolutionDataset
 from tqdm import tqdm
+from os.path import exists
+
 
 class Lite(LightningLite):
 
@@ -49,13 +52,23 @@ class Lite(LightningLite):
 
 
     def save_ckpt(self):
-        model = {
+        dict = {
             'G': self.G.state_dict(),
             'opt_G': self.opt_G.state_dict(),
             'D': self.D.state_dict(),
             'opt_D': self.opt_D.state_dict(),
         }
-        self.save(model, "./check_points/{self.preview_path}/last_lite.ckpt")
+        self.save(dict, f"./check_points/{self.preview_path}/last_lite.ckpt")
+        
+    def load_ckpt(self):
+        ckpt_path =  f"./check_points/{self.preview_path}/last_lite.ckpt"
+        if exists(ckpt_path):
+            print(f"load last_ckpt from {ckpt_path}")
+            dict = self.load(ckpt_path)
+            self.G.load_state_dict(dict['G'])
+            self.opt_G.load_state_dict(dict['opt_G'])
+            self.D.load_state_dict(dict['D'])
+            self.opt_D.load_state_dict(dict['opt_D'])
 
     def run(self,num_epochs: int, im_size: int = 64,
                 z_dim: int = 64,
@@ -108,6 +121,7 @@ class Lite(LightningLite):
         self.setup(self.D,self.opt_D)
         dataset = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=self.im_size)
         data_loader = DataLoader(dataset,batch_size=self.batch_size,num_workers=8,persistent_workers = True,shuffle=True,pin_memory=True,drop_last=True)
+        self.load_ckpt()
         self.G.train(True)
         self.D.train(True)
         self.global_step = 0
@@ -115,7 +129,7 @@ class Lite(LightningLite):
             bar = tqdm(data_loader)
             for i, imgs in enumerate(bar):
 
-        
+
                 self.global_step += 1
                 self.process_cmd()
                 if self.should_stop:
@@ -133,8 +147,8 @@ class Lite(LightningLite):
                 self.opt_G.step()
                 # ========= TrainD ============
                 self.G.requires_grad_(False)
-                self.D.requires_grad_(True)
-                self.D.feature_networks.requires_grad_(False)
+                self.D.discriminators.requires_grad_(True)
+                # self.D.feature_networks.requires_grad_(False)
                 imgs = imgs.to(device)
                 r_preds = self.D(imgs,blur_sigma)
                 f_preds = self._get_fake_predict(blur_sigma)
