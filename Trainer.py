@@ -15,7 +15,7 @@ def trainerThread(cfg, s2c, c2s):
     preview_num = cfg["preview_num"],
     traindataset= "sexyface",
     preview_path = "pj_gan3",
-    lr = 0.0025,
+    lr = 0.002,
     s2c=s2c,
     c2s=c2s)
 
@@ -52,6 +52,6 @@ def trainerLite(cfg, s2c, c2s):
     preview_num = cfg["preview_num"],
     traindataset= "sexyface",
     preview_path = "pj_gan",
-    lr = 0.005,
+    lr = 0.003,
     s2c=s2c,
     c2s=c2s)

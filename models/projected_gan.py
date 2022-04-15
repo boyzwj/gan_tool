@@ -25,7 +25,7 @@ import math
 from PIL import Image
 from torch_utils.ops import conv2d_gradfix
 
-from models.fastgan import Generator
+from models.stylegan import Generator
 
 
 class ProjectedGAN(LightningModule):
@@ -54,11 +54,8 @@ class ProjectedGAN(LightningModule):
         self.blur_fade_kimg = 300
         self.blur_init_sigma = 2
 
-        self.pl_weight = 10
-        self.pl_decay = 0.01
-        self.pl_mean = torch.zeros([], device=self.device)
         # networks
-        self.G = Generator(z_dim=self.z_dim,im_size=image_size)
+        self.G = Generator(z_dim=self.z_dim,w_dim = self.z_dim*2, img_resolution =image_size)
         
         self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_base_distilled_patch16_224', 'tf_efficientnet_lite0'])
         # self.D = ProjectedDiscriminator(im_res=image_size,backbones=['tf_efficientnet_lite0'])
@@ -95,14 +92,14 @@ class ProjectedGAN(LightningModule):
     def send_previw(self):
         with torch.no_grad():
             z = self.validation_z.to(self.device)
-            sample_imgs,_ws = self.G(z)
+            sample_imgs = self.G(z)
             self.c2s.put({'op':"show",'previews': sample_imgs.cpu()})              
 
             
     def _make_noise(self, latent_dim, n_noise):
         if n_noise == 1:
-            return torch.randn(self.preview_num, latent_dim, device=self.device,requires_grad=True)
-        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device,requires_grad=True)
+            return torch.randn(self.preview_num, latent_dim, device=self.device)
+        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device)
 
 
     def training_step(self, batch, batch_idx, optimizer_idx):
@@ -112,19 +109,10 @@ class ProjectedGAN(LightningModule):
         # train generator
         if optimizer_idx == 0:
             noise = self._make_noise(self.z_dim, 1)
-            fake_img, _ws = self.G(noise)
+            fake_img = self.G(noise)
+            f_preds = self.D(fake_img,blur_sigma)
             g_loss = sum([(-l).mean() for l in f_preds])
-            if self.global_step % 4 == 0:
-                pl_noise = torch.randn_like(fake_img) / np.sqrt(fake_img.shape[2] * fake_img.shape[3])
-                with conv2d_gradfix.no_weight_gradients(True):
-                    pl_grads = torch.autograd.grad(outputs=[(fake_img * pl_noise).sum()], inputs=[ws], create_graph=True, only_inputs=True)[0]
-                    pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
-                    pl_mean = self.pl_mean.lerp(pl_lengths.mean(), self.pl_decay)
-                    self.pl_mean.copy_(pl_mean.detach())
-                    pl_penalty = (pl_lengths - pl_mean).square()
-                    pl_loss = pl_penalty * self.pl_weight
-                    g_loss = g_loss + pl_loss.mean()
-            self.log('g_loss', g_loss, on_step=True, on_epoch=True, prog_bar=True)
+            self.log('g_loss', g_loss, on_step=True,on_epoch=True, prog_bar=True)
             return g_loss
 
         # train discriminator
@@ -147,7 +135,7 @@ class ProjectedGAN(LightningModule):
     
     def _get_fake_img(self):
         noise = self._make_noise(self.z_dim, 1)
-        img,_ws = self.G(noise)
+        img = self.G(noise)
         return img
 
     def configure_optimizers(self):
@@ -165,13 +153,13 @@ class ProjectedGAN(LightningModule):
 
     def train_dataloader(self):
         train = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=self.size)
-        return DataLoader(train, batch_size=self.batch_size,num_workers=8,persistent_workers = True,shuffle=True,pin_memory=True,drop_last=True)
+        return DataLoader(train, batch_size=self.batch_size,num_workers=0,shuffle=True,pin_memory=True,drop_last=True)
 
     def on_train_epoch_end(self):
         if not os.path.exists(f'previews/{self.preview_path}'):
             os.makedirs(f'previews/{self.preview_path}')
         z = self.validation_z.to(self.device)
-        imgs = self(z)
+        imgs = self.G(z)
         nrow = int(math.sqrt(len(z)))
         save_image(imgs,f"previews/{self.preview_path}/epoch_{self.current_epoch+1}.png",value_range=(-1,1),normalize=True,nrow =nrow)
 

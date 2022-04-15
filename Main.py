@@ -145,7 +145,7 @@ class App(QMainWindow):
                 self.timer_id = self.startTimer(500, timerType=Qt.VeryCoarseTimer)
                 self.s2c = Queue(20)
                 self.c2s = Queue(20)
-                self.trainThread   = Process(target=trainerLite, args=(self.cfg, self.s2c, self.c2s), kwargs={})
+                self.trainThread   = Process(target=trainerThread, args=(self.cfg, self.s2c, self.c2s), kwargs={})
                 self.trainThread.start()
                 self.Training = True
                 self.waiting_data = False

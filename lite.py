@@ -1,3 +1,4 @@
+import imp
 import io
 import os
 from time import sleep, time
@@ -7,7 +8,8 @@ from torch import nn
 from pytorch_lightning.lite import LightningLite
 import torch.nn.functional as F
 import torchvision.transforms as transforms
-from models.fastgan import Generator
+# from models.fastgan import Generator
+from models.stylegan import Generator
 from models.discriminator import ProjectedDiscriminator
 from torch.utils.data import DataLoader
 from dataset import MultiResolutionDataset
@@ -52,8 +54,8 @@ class Lite(LightningLite):
 
     def _make_noise(self, latent_dim, n_noise):
         if n_noise == 1:
-            return torch.randn(self.preview_num, latent_dim, device=self.device,requires_grad=True)
-        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device,requires_grad=True)
+            return torch.randn(self.preview_num, latent_dim, device=self.device)
+        return torch.randn(n_noise, self.preview_num, latent_dim, device=self.device)
         
     def _get_fake_predict(self, blur_sigma):
         fake_img = self._get_fake_img()
@@ -61,7 +63,7 @@ class Lite(LightningLite):
 
     def _get_fake_img(self):
         noise = self._make_noise(self.z_dim, 1)
-        img,_ws = self.G(noise)
+        img = self.G(noise)
         return img
 
     def process_cmd(self):
@@ -83,7 +85,7 @@ class Lite(LightningLite):
     def send_previw(self):
         with torch.no_grad():
             z = self.validation_z.to(self.device)
-            sample_imgs,_ws = self.G(z)
+            sample_imgs = self.G(z)
             self.c2s.put({'op':"show",'previews': sample_imgs.cpu()}) 
 
 
@@ -117,7 +119,7 @@ class Lite(LightningLite):
                 preview_path = "default",
                 s2c = None,
                 c2s = None):
-        
+        torch.backends.cudnn.benchmark = True
         self.s2c = s2c
         self.c2s = c2s
         self.should_stop = False
@@ -149,7 +151,7 @@ class Lite(LightningLite):
         ])
     
     
-        self.G = Generator(z_dim=self.z_dim,im_size=self.im_size)
+        self.G = Generator(z_dim=self.z_dim,w_dim = self.z_dim * 2,img_resolution=self.im_size,fused_modconv_default = 'inference_only')
         self.opt_G = torch.optim.Adam(self.G.parameters(), lr=self.lr, betas=(self.b1, self.b2))
         self.LRS_G = torch.optim.lr_scheduler.MultiStepLR(self.opt_G,[10,20,30], gamma=0.1, last_epoch=-1)
         self.setup(self.G,self.opt_G)
@@ -162,7 +164,7 @@ class Lite(LightningLite):
                 
                 
         dataset = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=self.im_size)
-        data_loader = DataLoader(dataset,batch_size=self.batch_size,num_workers=8,persistent_workers = True,shuffle=True,pin_memory=True,drop_last=True)
+        data_loader = DataLoader(dataset,batch_size=self.batch_size,num_workers=0,shuffle=True,pin_memory=True,drop_last=True)
 
         self.G.train(True)
         self.D.train(True)
@@ -173,7 +175,6 @@ class Lite(LightningLite):
 
 
                 self.global_step += 1
-                start_plreg = self.global_step >= 1e4
                 
                 self.process_cmd()
                 if self.should_stop:
@@ -184,22 +185,9 @@ class Lite(LightningLite):
                 self.G.requires_grad_(True)
                 self.D.requires_grad_(False)
                 noise = self._make_noise(self.z_dim, 1)
-                fake_img, ws = self.G(noise)
+                fake_img = self.G(noise)
                 f_preds =self.D(fake_img,blur_sigma)     
                 g_loss = sum([(-l).mean() for l in f_preds])
-                
-                #=========  PL ======= 
-                if start_plreg:
-                    pl_noise = torch.randn_like(fake_img) / np.sqrt(fake_img.shape[2] * fake_img.shape[3])
-                    with conv2d_gradfix.no_weight_gradients(True):
-                        pl_grads = torch.autograd.grad(outputs=[(fake_img * pl_noise).sum()], inputs=[ws], create_graph=True, only_inputs=True)[0]
-                        pl_lengths = pl_grads.square().sum(2).mean(1).sqrt()
-                        pl_mean = self.pl_mean.lerp(pl_lengths.mean(), self.pl_decay)
-                        self.pl_mean.copy_(pl_mean.detach())
-                        pl_penalty = (pl_lengths - pl_mean).square()
-                        pl_loss = pl_penalty * self.pl_weight
-                        g_loss = g_loss + pl_loss.mean()
-       
                 self.backward(g_loss)
                 self.opt_G.step()
                               
@@ -207,7 +195,7 @@ class Lite(LightningLite):
                 self.opt_D.zero_grad()
                 self.G.requires_grad_(False)
                 self.D.discriminators.requires_grad_(True)
-                # self.D.feature_networks.requires_grad_(False)
+                self.D.feature_networks.requires_grad_(False)
                 imgs = imgs.to(device)
                 r_preds = self.D(imgs,blur_sigma)
                 f_preds = self._get_fake_predict(blur_sigma)

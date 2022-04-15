@@ -183,4 +183,4 @@ class Generator(nn.Module):
 
         if self.img_resolution >= 1024:
             feat_last = self.feat_1024(feat_last)
-        return self.to_big(feat_last), ws
+        return self.to_big(feat_last)
