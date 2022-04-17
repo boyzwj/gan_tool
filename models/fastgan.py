@@ -125,7 +125,7 @@ def UpBlockBig(in_planes, out_planes):
 
 
 class Generator(nn.Module):
-    def __init__(self, ngf=64, z_dim=100, nc=3, im_size=1024):
+    def __init__(self, ngf=64, z_dim=100, nc=3, im_size=1024,lite = True):
         super().__init__()
 
         nfc_multi = {2: 16, 4:16, 8:8, 16:4, 32:2, 64:2, 128:1, 256:0.5,
@@ -138,14 +138,14 @@ class Generator(nn.Module):
         self.init = InitLayer(z_dim, channel=nfc[4])
         self.mapping = DummyMapping()
         
-        # UpBlock = UpBlockSmall if lite else UpBlockBig
+        UpBlock = UpBlockSmall if lite else UpBlockBig
         
-        self.feat_8   = UpBlockBig(nfc[4], nfc[8])
-        self.feat_16  = UpBlockSmall(nfc[8], nfc[16])
-        self.feat_32  = UpBlockBig(nfc[16], nfc[32])
-        self.feat_64  = UpBlockSmall(nfc[32], nfc[64])
-        self.feat_128 = UpBlockBig(nfc[64], nfc[128])  
-        self.feat_256 = UpBlockSmall(nfc[128], nfc[256]) 
+        self.feat_8   = UpBlock(nfc[4], nfc[8])
+        self.feat_16  = UpBlock(nfc[8], nfc[16])
+        self.feat_32  = UpBlock(nfc[16], nfc[32])
+        self.feat_64  = UpBlock(nfc[32], nfc[64])
+        self.feat_128 = UpBlock(nfc[64], nfc[128])  
+        self.feat_256 = UpBlock(nfc[128], nfc[256]) 
 
         self.se_64  = SEBlock(nfc[4], nfc[64])
         self.se_128 = SEBlock(nfc[8], nfc[128])

@@ -24,9 +24,12 @@ from random import random
 import math
 from PIL import Image
 from torch_utils.ops import conv2d_gradfix
+import platform
+# from models.fastgan import Generator
 
-from models.stylegan import Generator
-
+# import models.fastgan
+# import models.stylegan
+# import models.stylegan3
 
 class ProjectedGAN(LightningModule):
     def __init__(self,
@@ -52,12 +55,15 @@ class ProjectedGAN(LightningModule):
         self.batch_size = batch_size
         self.preview_num = preview_num
         self.blur_fade_kimg = 300
-        self.blur_init_sigma = 2
+        self.blur_init_sigma = 3
 
         # networks
+        from models.stylegan3 import Generator
         self.G = Generator(z_dim=self.z_dim,w_dim = self.z_dim*2, img_resolution =image_size)
-        
-        self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_base_distilled_patch16_224', 'tf_efficientnet_lite0'])
+        # from models.fastgan import Generator
+        # self.G = Generator(z_dim=self.z_dim,im_size=self.size,lite=False)
+        # self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_base_distilled_patch16_224', 'tf_efficientnet_lite0'])
+        self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_small_distilled_patch16_224', 'tf_efficientnet_lite0'])
         # self.D = ProjectedDiscriminator(im_res=image_size,backbones=['tf_efficientnet_lite0'])
         self.validation_z = self._make_noise(self.z_dim, 1)
 
@@ -69,7 +75,6 @@ class ProjectedGAN(LightningModule):
             transforms.RandomHorizontalFlip(),
             transforms.ToTensor(),
             transforms.Normalize([0.5, 0.5, 0.5],[0.5, 0.5, 0.5]),
-
         ])
 
         
@@ -125,10 +130,7 @@ class ProjectedGAN(LightningModule):
             d_loss = d_loss_real + d_loss_fake
             self.log('d_loss', d_loss, on_step=True,on_epoch=True, prog_bar=True)
             return d_loss
-
-         
-
-        
+                
     def _get_fake_predict(self, blur_sigma):
         fake_img = self._get_fake_img()
         return self.D(fake_img,blur_sigma)
@@ -146,14 +148,20 @@ class ProjectedGAN(LightningModule):
         opt_g = torch.optim.Adam(self.G.parameters(), lr=lr, betas=(b1, b2))
         scheduler_g = torch.optim.lr_scheduler.MultiStepLR(opt_g,[10,20,30], gamma=0.1, last_epoch=-1)
 
-        opt_d = torch.optim.Adam(self.D.parameters(), lr=lr, betas=(b1, b2))
+        opt_d = torch.optim.Adam(self.D.discriminators.parameters(), lr=lr, betas=(b1, b2))
         scheduler_d = torch.optim.lr_scheduler.MultiStepLR(opt_g,[10,20,30], gamma=0.1, last_epoch=-1)
 
         return [opt_g, opt_d] ,[scheduler_g, scheduler_d]
 
     def train_dataloader(self):
-        train = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=self.size)
-        return DataLoader(train, batch_size=self.batch_size,num_workers=0,shuffle=True,pin_memory=True,drop_last=True)
+        # train = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=self.size)
+        train = MultiResolutionDataset(self.traindataset,self.data_transform,resolution=256)
+        num_workers = 12
+        persistent_workers = True
+        if(platform.system()=='Windows'):
+            num_workers = 0
+            persistent_workers = False
+        return DataLoader(train, batch_size=self.batch_size,num_workers=num_workers,shuffle=True,persistent_workers=persistent_workers,pin_memory=True,drop_last=True)
 
     def on_train_epoch_end(self):
         if not os.path.exists(f'previews/{self.preview_path}'):

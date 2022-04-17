@@ -13,7 +13,7 @@ from PIL import Image
 import math
 from torchvision.utils import make_grid
 from uic.FaceTool import Ui_MainWindow
-from Trainer import *
+from trainer import *
 
 
 class App(QMainWindow):
@@ -36,12 +36,30 @@ class App(QMainWindow):
         self.ui.sbBatchSize.valueChanged.connect(self.BatchSizeChanged)
         self.ui.sbPreview.valueChanged.connect(self.PreviewNumChanged)
         self.ui.resumeCheck.clicked.connect(self.ResumeChanged)
+        self.ui.sbLearningRate.textChanged.connect(self.LearningRateChanged)
+        self.ui.sbTrainName.textChanged.connect(self.TrainNameChanged)
+        self.ui.sbDataset.textChanged.connect(self.DatasetChanged)
+        
+        
         self.trainThread = None
         self.is_preview = False
         self.waiting_data = False
         self.cfg = None
         self.Training = False
         self.load_config()
+        
+    def TrainNameChanged(self, event):
+        self.cfg["train_name"] = self.ui.sbTrainName.text()
+        self.save_config()
+        
+    def DatasetChanged(self, event):
+        self.cfg["dataset"] = self.ui.sbDataset.text()
+        self.save_config()        
+        
+    def LearningRateChanged(self, event):
+        self.cfg["learning_rate"] = float(self.ui.sbLearningRate.text())
+        self.save_config()
+
 
     def ImageSizeChanged(self, event):
         self.cfg["image_size"] = self.ui.sbImageSize.value()
@@ -62,18 +80,22 @@ class App(QMainWindow):
     def ResumeChanged(self, event):
         self.cfg["resume"] = self.ui.resumeCheck.isChecked()
         self.save_config()
-
+        
 
 
     def load_config(self):
         yamlPath = os.path.join(os.path.dirname(os.path.realpath(__file__)), "conf/conf.yaml")
         with open(yamlPath, 'r', encoding='utf-8') as f:
             self.cfg = yaml.load(f.read(),Loader = yaml.FullLoader)
+            self.ui.sbDataset.setText(self.cfg["dataset"])
+            self.ui.sbTrainName.setText(self.cfg["train_name"])
+            self.ui.sbLearningRate.setText(str(self.cfg["learning_rate"]))
             self.ui.sbBatchSize.setValue(self.cfg["batch_size"])
             self.ui.sbImageSize.setValue(self.cfg["image_size"])
             self.ui.sbLatentDim.setValue(self.cfg["latent_dim"])
             self.ui.sbPreview.setValue(self.cfg["preview_num"])
             self.ui.resumeCheck.setChecked(self.cfg["resume"])
+  
 
 
     def save_config(self):

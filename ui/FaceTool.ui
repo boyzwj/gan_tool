@@ -58,10 +58,10 @@
    <widget class="QLabel" name="label">
     <property name="geometry">
      <rect>
-      <x>1160</x>
+      <x>1150</x>
       <y>702</y>
-      <width>71</width>
-      <height>16</height>
+      <width>81</width>
+      <height>20</height>
      </rect>
     </property>
     <property name="layoutDirection">
@@ -220,27 +220,39 @@
    <widget class="QLabel" name="label_3">
     <property name="geometry">
      <rect>
-      <x>1170</x>
+      <x>1140</x>
       <y>660</y>
-      <width>71</width>
+      <width>91</width>
       <height>20</height>
      </rect>
     </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
+    </property>
     <property name="text">
      <string>Image Size</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QLabel" name="label_4">
     <property name="geometry">
      <rect>
-      <x>1170</x>
+      <x>1150</x>
       <y>620</y>
-      <width>61</width>
+      <width>81</width>
       <height>21</height>
      </rect>
     </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
+    </property>
     <property name="text">
      <string>Latent Dim</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
     </property>
    </widget>
    <widget class="QSpinBox" name="sbLatentDim">
@@ -248,12 +260,12 @@
      <rect>
       <x>1240</x>
       <y>620</y>
-      <width>42</width>
+      <width>61</width>
       <height>22</height>
      </rect>
     </property>
     <property name="minimum">
-     <number>32</number>
+     <number>8</number>
     </property>
     <property name="maximum">
      <number>512</number>
@@ -266,6 +278,96 @@
     </property>
     <property name="displayIntegerBase">
      <number>10</number>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_5">
+    <property name="geometry">
+     <rect>
+      <x>1140</x>
+      <y>580</y>
+      <width>91</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="layoutDirection">
+     <enum>Qt::LeftToRight</enum>
+    </property>
+    <property name="text">
+     <string>Learning Rate</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="sbLearningRate">
+    <property name="geometry">
+     <rect>
+      <x>1240</x>
+      <y>580</y>
+      <width>61</width>
+      <height>21</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>0.002</string>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="sbTrainName">
+    <property name="geometry">
+     <rect>
+      <x>1240</x>
+      <y>500</y>
+      <width>81</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>01</string>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_6">
+    <property name="geometry">
+     <rect>
+      <x>1170</x>
+      <y>500</y>
+      <width>61</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Train Name</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLabel" name="label_7">
+    <property name="geometry">
+     <rect>
+      <x>1180</x>
+      <y>544</y>
+      <width>54</width>
+      <height>12</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>Dataset</string>
+    </property>
+    <property name="alignment">
+     <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
+    </property>
+   </widget>
+   <widget class="QLineEdit" name="sbDataset">
+    <property name="geometry">
+     <rect>
+      <x>1240</x>
+      <y>540</y>
+      <width>61</width>
+      <height>20</height>
+     </rect>
+    </property>
+    <property name="text">
+     <string>sexyface</string>
     </property>
    </widget>
   </widget>
