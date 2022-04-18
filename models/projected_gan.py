@@ -58,10 +58,10 @@ class ProjectedGAN(LightningModule):
         self.blur_init_sigma = 3
 
         # networks
-        from models.stylegan3 import Generator
-        self.G = Generator(z_dim=self.z_dim,w_dim = self.z_dim*2, img_resolution =image_size)
-        # from models.fastgan import Generator
-        # self.G = Generator(z_dim=self.z_dim,im_size=self.size,lite=False)
+        # from models.stylegan3 import Generator
+        # self.G = Generator(z_dim=self.z_dim,w_dim = self.z_dim*2, img_resolution =image_size)
+        from models.fastgan import Generator
+        self.G = Generator(z_dim=self.z_dim,im_size=self.size,lite=False)
         # self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_base_distilled_patch16_224', 'tf_efficientnet_lite0'])
         self.D = ProjectedDiscriminator(im_res=image_size,backbones=['deit_small_distilled_patch16_224', 'tf_efficientnet_lite0'])
         # self.D = ProjectedDiscriminator(im_res=image_size,backbones=['tf_efficientnet_lite0'])
@@ -82,6 +82,7 @@ class ProjectedGAN(LightningModule):
     def forward(self, z):
         return self.G(z)
 
+
     def process_cmd(self):
         if not self.s2c.empty():
             msg = self.s2c.get()
@@ -93,12 +94,12 @@ class ProjectedGAN(LightningModule):
                 self.trainer.should_stop = True
             else:
                 pass
-
+            
+    @torch.no_grad()
     def send_previw(self):
-        with torch.no_grad():
-            z = self.validation_z.to(self.device)
-            sample_imgs = self.G(z)
-            self.c2s.put({'op':"show",'previews': sample_imgs.cpu()})              
+        z = self.validation_z.to(self.device)
+        sample_imgs = self.G(z)
+        self.c2s.put({'op':"show",'previews': sample_imgs.cpu()})              
 
             
     def _make_noise(self, latent_dim, n_noise):
@@ -145,10 +146,10 @@ class ProjectedGAN(LightningModule):
         b1 = self.b1
         b2 = self.b2
 
-        opt_g = torch.optim.Adam(self.G.parameters(), lr=lr, betas=(b1, b2))
+        opt_g = torch.optim.AdamW(self.G.parameters(), lr=lr, betas=(b1, b2))
         scheduler_g = torch.optim.lr_scheduler.MultiStepLR(opt_g,[10,20,30], gamma=0.1, last_epoch=-1)
 
-        opt_d = torch.optim.Adam(self.D.discriminators.parameters(), lr=lr, betas=(b1, b2))
+        opt_d = torch.optim.AdamW(self.D.discriminators.parameters(), lr=lr, betas=(b1, b2))
         scheduler_d = torch.optim.lr_scheduler.MultiStepLR(opt_g,[10,20,30], gamma=0.1, last_epoch=-1)
 
         return [opt_g, opt_d] ,[scheduler_g, scheduler_d]

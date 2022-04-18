@@ -37,7 +37,7 @@ def trainerThread(cfg, s2c, c2s):
             # amp_level='O1',
             callbacks=[checkpoint_callback],
             gpus=1,
-            check_val_every_n_epoch=1000, 
+            check_val_every_n_epoch=5000, 
             max_epochs=50)
 
     # trainer.tune(model)
